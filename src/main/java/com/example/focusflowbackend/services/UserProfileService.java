@@ -5,7 +5,6 @@ import com.example.focusflowbackend.repository.UserProfileRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
-import java.util.List;
 
 @Service
 public class UserProfileService {
@@ -16,13 +15,13 @@ public class UserProfileService {
         this.userProfileRepository = userProfileRepository;
     }
 
-    // Lấy hồ sơ user theo user_id
+    //Get by user_id
     public UserProfile getProfileByUserId(Long userId) {
         return userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found"));
     }
 
-    // Cập nhật hồ sơ user
+    //Update 
     public UserProfile updateProfile(Long userId, UserProfile updatedProfile) {
         UserProfile existingProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found"));
@@ -36,10 +35,5 @@ public class UserProfileService {
         existingProfile.setCountry(updatedProfile.getCountry());
 
         return userProfileRepository.save(existingProfile);
-    }
-
-    // Lấy tất cả hồ sơ người dùng (dành cho admin)
-    public List<UserProfile> getAllProfiles() {
-        return userProfileRepository.findAll(); // Lấy tất cả người dùng
     }
 }

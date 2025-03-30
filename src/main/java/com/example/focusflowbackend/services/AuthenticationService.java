@@ -1,15 +1,19 @@
 package com.example.focusflowbackend.services;
 
-import com.example.focusflowbackend.dto.AuthenticationRequest;
-import com.example.focusflowbackend.dto.AuthenticationResponse;
-import com.example.focusflowbackend.dto.RegisterRequest;
+import com.example.focusflowbackend.dto.auth.AuthenticationRequest;
+import com.example.focusflowbackend.dto.auth.AuthenticationResponse;
+import com.example.focusflowbackend.dto.auth.RegisterRequest;
 import com.example.focusflowbackend.models.Role;
+import com.example.focusflowbackend.models.Setting;
 import com.example.focusflowbackend.models.Status;
 import com.example.focusflowbackend.models.User;
 import com.example.focusflowbackend.models.UserProfile;
 import com.example.focusflowbackend.models.Gender;
+import com.example.focusflowbackend.models.Notification;
 import com.example.focusflowbackend.repository.UserAccountRepo;
 import com.example.focusflowbackend.repository.UserProfileRepo;
+import com.example.focusflowbackend.repository.SettingRepo;
+import com.example.focusflowbackend.repository.NotificationRepo;
 import com.example.focusflowbackend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +31,12 @@ public class AuthenticationService {
     private UserProfileRepo userProfileRepo;
 
     @Autowired
+    private SettingRepo settingRepo;
+
+    @Autowired
+    private NotificationRepo notificationRepo;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -39,7 +49,7 @@ public class AuthenticationService {
         }
 
         // Tạo người dùng mới
-        Role role = Role.valueOf("ROLE_" + request.getRole().toUpperCase());
+        Role role = Role.ROLE_USER; // Mặc định role
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -60,8 +70,31 @@ public class AuthenticationService {
         userProfile.setGender(Gender.OTHER);  // Mặc định là OTHER, có thể thay đổi nếu có giá trị
         userProfile.setCountry("Not provided");
 
-        // Lưu thông tin User_Profile
+        // Tạo Setting mặc định cho user
+        Setting setting = Setting.builder()
+                .user(user) // Liên kết với user mới tạo
+                .language("vi")
+                .theme("light")
+                .taskReminder(true)
+                .notificationEnabled(true)
+                .pomodoroDuration(25)
+                .shortBreak(5)
+                .longBreak(15)
+                .pomodoroRounds(4)
+                .timezone("UTC+7")
+                .build();
+
+        Notification welcome = Notification.builder()
+                .user(user)
+                .type("WELCOME")
+                .message("Chào mừng bạn đến với FocusFlow! 🎉")
+                .isRead(false)
+                .build();
+
+        //Lưu database
         userProfileRepo.save(userProfile);
+        settingRepo.save(setting);
+        notificationRepo.save(welcome);
 
         // Tạo JWT token cho người dùng mới
         String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name()); // Chuyển đổi Role thành String

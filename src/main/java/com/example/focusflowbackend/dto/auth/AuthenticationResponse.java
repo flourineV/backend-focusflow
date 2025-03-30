@@ -1,4 +1,4 @@
-package com.example.focusflowbackend.dto;
+package com.example.focusflowbackend.dto.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

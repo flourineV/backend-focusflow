@@ -37,6 +37,11 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
+        if (requestURI.startsWith("/v3/api-docs") || requestURI.startsWith("/swagger-ui") || requestURI.equals("/swagger-ui.html")) {
+            chain.doFilter(request, response); // Bỏ qua JWT cho Swagger
+            return;
+        }
+
         final String authHeader = request.getHeader("Authorization");
         String token = null;
         String email = null;

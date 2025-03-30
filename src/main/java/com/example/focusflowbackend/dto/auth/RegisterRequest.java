@@ -1,4 +1,4 @@
-package com.example.focusflowbackend.dto;
+package com.example.focusflowbackend.dto.auth;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -10,7 +10,7 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class AuthenticationRequest {
+public class RegisterRequest {
 
     private String email;
     private String password;

@@ -11,8 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/user-profile")
 public class UserProfileController {
@@ -81,26 +79,6 @@ public class UserProfileController {
         } catch (Exception e) {
             System.out.println("Error in updateUserProfile: " + e.getMessage()); // Log lỗi để dễ dàng xác định
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); // Trả về 404 Not Found nếu không tìm thấy user
-        }
-    }
-
-    // Lấy tất cả hồ sơ user (dành cho admin)
-    @GetMapping("/admin/all")
-    public ResponseEntity<List<UserProfile>> getAllUserProfiles(@RequestHeader("Authorization") String token) {
-        try {
-            // Lấy thông tin người dùng từ JWT
-            String role = jwtUtil.extractRole(token);
-
-            // Chỉ cho phép admin lấy danh sách
-            if (!role.equals("ROLE_ADMIN")) {
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN); // Trả về 403 Forbidden nếu không phải admin
-            }
-
-            List<UserProfile> userProfiles = userProfileService.getAllProfiles();
-            return new ResponseEntity<>(userProfiles, HttpStatus.OK);
-
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR); // Trả về 500 nếu có lỗi xảy ra
         }
     }
 }

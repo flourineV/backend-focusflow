@@ -1,9 +1,9 @@
 package com.example.focusflowbackend.controllers;
 
 import com.example.focusflowbackend.security.JwtUtil;
-import com.example.focusflowbackend.dto.AuthenticationRequest;
-import com.example.focusflowbackend.dto.AuthenticationResponse;
-import com.example.focusflowbackend.dto.RegisterRequest;
+import com.example.focusflowbackend.dto.auth.AuthenticationRequest;
+import com.example.focusflowbackend.dto.auth.AuthenticationResponse;
+import com.example.focusflowbackend.dto.auth.RegisterRequest;
 import com.example.focusflowbackend.services.AuthenticationService;
 
 import org.springframework.http.ResponseEntity;

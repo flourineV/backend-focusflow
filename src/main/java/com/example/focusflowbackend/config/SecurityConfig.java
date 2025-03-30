@@ -48,6 +48,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/register", "/api/login").permitAll() // Không cần JWT
+                .requestMatchers(
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+                ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // Chỉ ADMIN truy cập
                 .requestMatchers("/api/user/**").hasRole("USER") // Chỉ USER truy cập
                 .requestMatchers("/api/user-profile/**").authenticated()
