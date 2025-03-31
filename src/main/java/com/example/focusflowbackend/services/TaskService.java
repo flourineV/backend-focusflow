@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -95,6 +96,21 @@ public class TaskService {
     public taskDTO.Response getTask(Long taskId) {
         return mapToDTO(taskRepo.findById(taskId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found")));
+    }
+
+    public List<taskDTO.Response> getTasksOverdue(Long userId) {
+        // Lấy thời gian hiện tại
+        LocalDateTime now = LocalDateTime.now();
+
+        // Lấy tất cả task của user và lọc những task đã quá hạn
+        return taskRepo.findByUserId(userId).stream()
+                .filter(task
+                        -> task.getDueDate() != null
+                && task.getDueDate().isBefore(now)
+                && !task.isCompleted()
+                )
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     public taskDTO.Response updateStatus(Long taskId, taskDTO.UpdateStatus dto) {
@@ -190,7 +206,6 @@ public class TaskService {
                 .title(task.getTitle())
                 .description(task.getDescription())
                 .dueDate(task.getDueDate())
-                .status(task.getStatus())
                 .priority(String.valueOf(task.getPriority()))
                 .repeatStyle(task.getRepeatStyle())
                 .reminderDaysBefore(task.getReminderDaysBefore())

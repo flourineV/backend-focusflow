@@ -135,5 +135,4 @@ public class taskDTO {
         private Long projectId;
         private List<Long> tagIds;
     }
-
 }

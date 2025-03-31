@@ -155,4 +155,13 @@ public class TaskController {
         taskService.addTagsToTask(taskId, tagIds);
         return ResponseEntity.ok().build();
     }
+    // Lấy tất cả task quá hạn của user
+
+    @GetMapping("/user/overdue")
+    public ResponseEntity<List<taskDTO.Response>> getTasksOverdue(
+            @RequestHeader("Authorization") String token) {
+        Long userId = jwtUtil.extractUserId(token);
+        List<taskDTO.Response> overdueTasks = taskService.getTasksOverdue(userId);
+        return ResponseEntity.ok(overdueTasks);
+    }
 }

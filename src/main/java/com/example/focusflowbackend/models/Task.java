@@ -2,6 +2,7 @@ package com.example.focusflowbackend.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.Accessors;
 
 import java.util.List;
 
@@ -66,5 +67,15 @@ public class Task {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+
+        // Nếu isCompleted chuyển từ false sang true thì cập nhật completedAt
+        if (this.isCompleted && (this.completedAt == null)) {
+            this.completedAt = LocalDateTime.now();
+        }
+
+        // Nếu isCompleted chuyển từ true sang false thì xóa completedAt
+        if (!this.isCompleted && (this.completedAt != null)) {
+            this.completedAt = null;
+        }
     }
 }
