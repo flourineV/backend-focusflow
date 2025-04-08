@@ -27,7 +27,7 @@ public class SecurityConfig {
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*")); // Chấp nhận tất cả các domain
+        config.setAllowedOrigins(List.of("*")); // Accept all domains
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -47,16 +47,11 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/register", "/api/login").permitAll() // Không cần JWT
-                .requestMatchers(
-                        "/v3/api-docs/**",
-                        "/swagger-ui/**",
-                        "/swagger-ui.html"
-                ).permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN") // Chỉ ADMIN truy cập
-                .requestMatchers("/api/user/**").hasRole("USER") // Chỉ USER truy cập
+                .requestMatchers("/api/register", "/api/login", "/api/refreshtoken").permitAll() // No need JWT for login and refresh token
+                .requestMatchers("/api/admin/**").hasRole("ADMIN") // Only Admin
+                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN") //Both Admin & User
                 .requestMatchers("/api/user-profile/**").authenticated()
-                .anyRequest().authenticated() // Các API khác cần đăng nhập
+                .anyRequest().authenticated() //all APIs must be auth
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

@@ -33,12 +33,13 @@ public class PomodoroService {
         Pomodoro pomodoro = Pomodoro.builder()
                 .user(user)
                 .task(task)
-                .sessionDate(request.getSessionDate() != null ? request.getSessionDate() : LocalDate.now())
                 .focusTime(request.getFocusTime())
                 .breakTime(request.getBreakTime())
                 .totalTime(calculateTotalTime(request.getFocusTime(), request.getBreakTime()))
                 .note(request.getNote())
                 .isDeleted(false)
+                .startTime(request.getStartTime())
+                .endTime(request.getEndTime())
                 .build();
 
         pomodoro = pomodoroRepo.save(pomodoro);
@@ -85,9 +86,8 @@ public class PomodoroService {
 
     // ✅ Lấy Pomodoro theo ngày
     public List<pomodoroDTO.Response> getPomodorosByDate(Long userId, LocalDate date) {
-        return pomodoroRepo.findByUserIdAndSessionDate(userId, date)
+        return pomodoroRepo.findPomodorosByUserAndDate(userId, date)
                 .stream()
-                .filter(p -> !p.isDeleted())
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -139,11 +139,40 @@ public class PomodoroService {
         return focusTime + breakTime;
     }
 
+    // ✅ Cập nhật ghi chú (note) của Pomodoro
+    public pomodoroDTO.Response updateNote(Long userId, Long pomodoroId, pomodoroDTO.UpdateNote request) {
+        Pomodoro pomodoro = pomodoroRepo.findById(pomodoroId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pomodoro not found"));
+
+        if (!pomodoro.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+
+        pomodoro.setNote(request.getNote());
+        pomodoro = pomodoroRepo.save(pomodoro);
+
+        return mapToResponse(pomodoro);
+    }
+
+// ✅ Cập nhật trạng thái isDeleted của Pomodoro
+    public pomodoroDTO.Response updateIsDeleted(Long userId, Long pomodoroId, pomodoroDTO.UpdateIsDeleted request) {
+        Pomodoro pomodoro = pomodoroRepo.findById(pomodoroId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pomodoro not found"));
+
+        if (!pomodoro.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+
+        pomodoro.setDeleted(request.isDeleted());
+        pomodoro = pomodoroRepo.save(pomodoro);
+
+        return mapToResponse(pomodoro);
+    }
+
     private pomodoroDTO.Response mapToResponse(Pomodoro pomodoro) {
         return pomodoroDTO.Response.builder()
                 .id(pomodoro.getId())
                 .taskId(pomodoro.getTask() != null ? pomodoro.getTask().getId() : null)
-                .sessionDate(pomodoro.getSessionDate())
                 .focusTime(pomodoro.getFocusTime())
                 .breakTime(pomodoro.getBreakTime())
                 .totalTime(pomodoro.getTotalTime())

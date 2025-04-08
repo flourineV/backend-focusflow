@@ -44,7 +44,6 @@ public class TaskService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .dueDate(request.getDueDate())
-                .status(request.getStatus())
                 .priority(request.getPriority())
                 .repeatStyle(request.getRepeatStyle())
                 .reminderDaysBefore(request.getReminderDaysBefore())
@@ -87,6 +86,13 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    public List<taskDTO.Response> getTasksByUserSortedByPriority(Long userId) {
+        return taskRepo.findByUserId(userId).stream()
+                .sorted((t1, t2) -> t2.getPriority().compareTo(t1.getPriority()))
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<taskDTO.Response> getTasksByProject(Long projectId) {
         return taskRepo.findTasksByProjectId(projectId).stream()
                 .map(this::mapToDTO)
@@ -111,12 +117,6 @@ public class TaskService {
                 )
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
-    }
-
-    public taskDTO.Response updateStatus(Long taskId, taskDTO.UpdateStatus dto) {
-        Task task = getEntity(taskId);
-        task.setStatus(dto.getStatus());
-        return mapToDTO(taskRepo.save(task));
     }
 
     public taskDTO.Response updatePriority(Long taskId, taskDTO.UpdatePriority dto) {
@@ -215,7 +215,14 @@ public class TaskService {
                 .build();
     }
 
-    public boolean isUserOwnerOfTask(Long userId, Long taskId) {
+    public long countTasksCompletedToday(Long userId) {
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        return taskRepo.countCompletedToday(userId, startOfDay, endOfDay);
+    }
+
+    public boolean isTaskOwnedByUser(Long taskId, Long userId) {
         // Lấy task theo ID
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));

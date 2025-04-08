@@ -2,8 +2,6 @@ package com.example.focusflowbackend.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,12 +25,12 @@ public class JwtFilter extends OncePerRequestFilter {
     private UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(@SuppressWarnings("null") HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(@SuppressWarnings("null") HttpServletRequest request, @SuppressWarnings("null") HttpServletResponse response, @SuppressWarnings("null") FilterChain chain)
             throws ServletException, IOException {
         String requestURI = request.getRequestURI();
 
-        // Bỏ qua kiểm tra JWT cho đăng ký và đăng nhập
-        if (requestURI.startsWith("/api/register") || requestURI.startsWith("/api/login")) {
+        // Bỏ qua kiểm tra JWT cho đăng ký, đăng nhập và refresh token
+        if (requestURI.startsWith("/api/register") || requestURI.startsWith("/api/login") || requestURI.startsWith("/api/refreshtoken")) {
             chain.doFilter(request, response);
             return;
         }
@@ -49,7 +47,11 @@ public class JwtFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7).trim();
             System.out.println("Extracted Token: " + token);
-            email = jwtUtil.extractEmail(token);
+            try {
+                email = jwtUtil.extractEmail(token);
+            } catch (Exception e) {
+                System.out.println("Error extracting email from token: " + e.getMessage());
+            }
         }
 
         if (token != null) {

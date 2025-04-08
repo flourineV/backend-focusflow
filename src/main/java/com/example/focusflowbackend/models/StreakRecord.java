@@ -6,6 +6,8 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "streak_records")
 @Getter
@@ -21,6 +23,7 @@ public class StreakRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private User user;
 
     @Column(name = "start_date", nullable = false)
@@ -31,6 +34,10 @@ public class StreakRecord {
 
     @Column(name = "streak_length", nullable = false)
     private Integer streakLength;
+
+    @Column(name = "longest_streak", nullable = false
+    )
+    private Integer longestStreak;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

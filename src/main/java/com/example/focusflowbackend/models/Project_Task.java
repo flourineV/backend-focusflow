@@ -3,9 +3,6 @@ package com.example.focusflowbackend.models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 @Entity
 @Table(name = "project_tasks")
 @Getter

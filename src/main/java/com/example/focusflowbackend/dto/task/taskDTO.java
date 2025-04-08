@@ -28,9 +28,6 @@ public class taskDTO {
 
         private LocalDateTime dueDate;
 
-        @NotBlank(message = "Trạng thái không được để trống")
-        private String status;
-
         @Min(value = 1, message = "Priority phải từ 1 trở lên")
         @Max(value = 5, message = "Priority tối đa là 5")
         private Integer priority;
@@ -39,16 +36,6 @@ public class taskDTO {
 
         @Min(value = 0, message = "Ngày nhắc nhở phải >= 0")
         private Integer reminderDaysBefore;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UpdateStatus {
-
-        @NotBlank(message = "Trạng thái không được để trống")
-        private String status;
     }
 
     @Getter
@@ -127,7 +114,6 @@ public class taskDTO {
         private String title;
         private String description;
         private LocalDateTime dueDate;
-        private String status;
         private String priority;
         private String repeatStyle;
         private Integer reminderDaysBefore;

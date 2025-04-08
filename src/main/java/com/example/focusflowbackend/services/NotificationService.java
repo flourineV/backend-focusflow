@@ -25,6 +25,12 @@ public class NotificationService {
         return notificationRepo.findByUserIdAndIsReadFalse(userId);
     }
 
+    // Lấy thông báo theo ID
+    public Notification getNotificationById(Long notificationId) {
+        return notificationRepo.findById(notificationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
+    }
+
     // Đánh dấu là đã đọc
     public Notification markAsRead(Long notificationId) {
         Notification noti = notificationRepo.findById(notificationId)

@@ -2,7 +2,6 @@ package com.example.focusflowbackend.models;
 
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.experimental.Accessors;
 
 import java.util.List;
 
@@ -34,8 +33,6 @@ public class Task {
     private String description;
 
     private LocalDateTime dueDate;
-
-    private String status;
 
     private Integer priority;
 

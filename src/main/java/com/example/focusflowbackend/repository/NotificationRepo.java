@@ -8,5 +8,6 @@ import java.util.List;
 public interface NotificationRepo extends JpaRepository<Notification, Long> {
 
     List<Notification> findByUserId(Long userId);
-    List<Notification> findByUserIdAndIsReadFalse(Long userId); // Chưa đọc
+
+    List<Notification> findByUserIdAndIsReadFalse(Long userId);
 }

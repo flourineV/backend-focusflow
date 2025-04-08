@@ -3,7 +3,6 @@ package com.example.focusflowbackend.models;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,11 +24,8 @@ public class Pomodoro {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id")
+    @JoinColumn(name = "task_id", nullable = true)
     private Task task;
-
-    @Column(name = "session_date")
-    private LocalDate sessionDate;
 
     @Column(name = "focus_time")
     private Integer focusTime;
@@ -42,11 +38,17 @@ public class Pomodoro {
 
     private String note;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
     @Column(name = "is_deleted")
     private boolean isDeleted;
+
+    @Column(name = "start_time")
+    private LocalDateTime startTime;
+
+    @Column(name = "end_time")
+    private LocalDateTime endTime;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "pomodoro", cascade = CascadeType.ALL)
     private List<PomodoroSession> sessions;

@@ -3,6 +3,7 @@ package com.example.focusflowbackend.services;
 import com.example.focusflowbackend.dto.auth.AuthenticationRequest;
 import com.example.focusflowbackend.dto.auth.AuthenticationResponse;
 import com.example.focusflowbackend.dto.auth.RegisterRequest;
+import com.example.focusflowbackend.dto.auth.TokenRefreshResponse;
 import com.example.focusflowbackend.models.Role;
 import com.example.focusflowbackend.models.Setting;
 import com.example.focusflowbackend.models.Status;
@@ -10,6 +11,7 @@ import com.example.focusflowbackend.models.User;
 import com.example.focusflowbackend.models.UserProfile;
 import com.example.focusflowbackend.models.Gender;
 import com.example.focusflowbackend.models.Notification;
+import com.example.focusflowbackend.models.RefreshToken;
 import com.example.focusflowbackend.repository.UserAccountRepo;
 import com.example.focusflowbackend.repository.UserProfileRepo;
 import com.example.focusflowbackend.repository.SettingRepo;
@@ -18,6 +20,7 @@ import com.example.focusflowbackend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
@@ -42,6 +45,10 @@ public class AuthenticationService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
+    @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
         // Kiểm tra nếu email đã tồn tại
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -97,12 +104,19 @@ public class AuthenticationService {
         notificationRepo.save(welcome);
 
         // Tạo JWT token cho người dùng mới
-        String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name()); // Chuyển đổi Role thành String
+        String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name());
+
+        // Tạo refresh token
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         // Trả về token trong AuthenticationResponse
-        return new AuthenticationResponse(token);
+        return AuthenticationResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken.getToken())
+                .build();
     }
 
+    @Transactional
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
@@ -114,13 +128,41 @@ public class AuthenticationService {
         // Tạo token với role dưới dạng String
         String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name());
 
-        return new AuthenticationResponse(token);
+        // Tạo refresh token mới
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        return AuthenticationResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken.getToken())
+                .build();
     }
 
+    @Transactional
+    public TokenRefreshResponse refreshToken(String refreshToken) {
+        return refreshTokenService.findByToken(refreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name());
+                    return new TokenRefreshResponse(token, refreshToken);
+                })
+                .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.FORBIDDEN, "Refresh token not found in database!"));
+    }
+
+    @Transactional
+    public void logout(Long userId) {
+        refreshTokenService.deleteByUserId(userId);
+    }
+
+    @Transactional
     public void deleteUser(Long userId) {
         // Kiểm tra xem người dùng có tồn tại không
         if (userRepository.existsById(userId)) {
-            userRepository.deleteById(userId); // Xóa người dùng
+            // Xóa refresh token trước
+            refreshTokenService.deleteByUserId(userId);
+            // Xóa người dùng
+            userRepository.deleteById(userId);
         } else {
             throw new RuntimeException("User not found with id: " + userId);
         }

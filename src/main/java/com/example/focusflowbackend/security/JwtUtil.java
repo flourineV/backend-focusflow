@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
@@ -13,10 +14,17 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET_KEY = "c3VwZXJzZWNyZXRrZXlmb3Jqd3Rwcm9qZWN0MTIzNDU2";
+    @Value("${app.jwt.secret}")
+    private String secretKey;
+    
+    @Value("${app.jwt.expiration-ms}")
+    private long jwtExpirationMs;
+    
+    @Value("${app.jwt.refresh-token-expiration-ms}")
+    private long refreshTokenExpirationMs;
 
     private Key getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -27,14 +35,24 @@ public class JwtUtil {
                 .claim("userId", userId) // Thêm userId vào token
                 .claim("role", role) // Thêm role vào token
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // Hết hạn sau 10 giờ
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateRefreshToken(String email, Long userId, String role) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("userId", userId)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpirationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     // Lấy userId từ token
     public Long extractUserId(String token) {
-        token = token.replace("Bearer ", "").trim();
         try {
             Claims claims = extractAllClaims(token);
             return claims.get("userId", Long.class);
@@ -72,6 +90,10 @@ public class JwtUtil {
 
     // Lấy tất cả claims từ token
     private Claims extractAllClaims(String token) {
+        // Loại bỏ prefix "Bearer " và khoảng trắng nếu có
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7).trim();
+        }
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
@@ -82,6 +104,10 @@ public class JwtUtil {
     // Trích xuất một claim cụ thể từ token
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         try {
+            // Loại bỏ prefix "Bearer " và khoảng trắng nếu có
+            if (token.startsWith("Bearer ")) {
+                token = token.substring(7).trim();
+            }
             final Claims claims = extractAllClaims(token);
             return claimsResolver.apply(claims);
         } catch (Exception e) {

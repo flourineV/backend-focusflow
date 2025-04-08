@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+###environment variables###
+.env
+
+###FCM###
+src/main/resources/FCM/

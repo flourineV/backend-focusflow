@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notification")
+@Table(name = "notifications")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,6 +27,7 @@ public class Notification {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    @Builder.Default
     @Column(name = "is_read")
     private Boolean isRead = false;
 
@@ -39,5 +40,12 @@ public class Notification {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    public void markAsRead() {
+        if (!Boolean.TRUE.equals(this.isRead)) {
+            this.isRead = true;
+            this.readAt = LocalDateTime.now();
+        }
     }
 }

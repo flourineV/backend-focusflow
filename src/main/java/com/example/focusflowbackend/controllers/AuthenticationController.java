@@ -1,47 +1,84 @@
 package com.example.focusflowbackend.controllers;
 
 import com.example.focusflowbackend.security.JwtUtil;
+import com.example.focusflowbackend.security.utils.AuthorizationUtils;
 import com.example.focusflowbackend.dto.auth.AuthenticationRequest;
 import com.example.focusflowbackend.dto.auth.AuthenticationResponse;
 import com.example.focusflowbackend.dto.auth.RegisterRequest;
+import com.example.focusflowbackend.dto.auth.TokenRefreshRequest;
+import com.example.focusflowbackend.dto.auth.TokenRefreshResponse;
+import com.example.focusflowbackend.dto.response.ErrorResponse;
+import com.example.focusflowbackend.dto.response.MessageResponse;
 import com.example.focusflowbackend.services.AuthenticationService;
 
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api")
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
-    private final JwtUtil jwtUtil;
+    private final AuthorizationUtils authUtils;
 
-    public AuthenticationController(AuthenticationService authenticationService, JwtUtil jwtUtil) {
+    public AuthenticationController(AuthenticationService authenticationService, JwtUtil jwtUtil, AuthorizationUtils authUtils) {
         this.authenticationService = authenticationService;
-        this.jwtUtil = jwtUtil;
+        this.authUtils = authUtils;
     }
 
+    //Register
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
         try {
-            // Đăng ký người dùng và nhận token
             AuthenticationResponse response = authenticationService.register(request);
-            return ResponseEntity.ok(response);  // Trả về token trong response
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(new AuthenticationResponse("Error: " + e.getMessage()));  // Trả về lỗi nếu có
         }
     }
 
+    //Login
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> loginUser(@RequestBody AuthenticationRequest request) {
         try {
-            // Lấy token sau khi người dùng đăng nhập thành công
-            AuthenticationResponse response = authenticationService.authenticate(request); // Trả về đối tượng AuthenticationResponse
-
-            // Trả về token dưới dạng ResponseEntity
-            return ResponseEntity.ok(response); // Đảm bảo trả về AuthenticationResponse, không phải chỉ token
+            AuthenticationResponse response = authenticationService.authenticate(request);
+            return ResponseEntity.ok(response); // return AuthenticationResponse
         } catch (Exception e) {
             return ResponseEntity.status(500).body(new AuthenticationResponse("Error: " + e.getMessage())); // Trả về lỗi nếu có
+        }
+    }
+
+    //Refreshtoken to get Access Token after being expired
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
+        try {
+            String refreshToken = request.getRefreshToken();
+            TokenRefreshResponse tokenRefreshResponse = authenticationService.refreshToken(refreshToken);
+            return ResponseEntity.ok(tokenRefreshResponse);
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity
+                    .status(ex.getStatusCode())
+                    .body(new ErrorResponse(ex.getReason()));
+        } catch (Exception ex) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Unexpected error occurred: " + ex.getMessage()));
+        }
+    }
+
+    //Logout
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser(@RequestParam Long userId) {
+        try {
+            authenticationService.logout(userId);
+            return ResponseEntity.ok(new MessageResponse("Log out successful!"));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Failed to logout: " + e.getMessage()));
         }
     }
 
@@ -50,24 +87,14 @@ public class AuthenticationController {
             @PathVariable Long userId,
             @RequestHeader("Authorization") String token) {
         try {
-            // Loại bỏ "Bearer " từ token
-            token = token.replace("Bearer ", "").trim();
-
-            // Trích xuất thông tin từ token
-            Long currentUserId = jwtUtil.extractUserId(token);
-            String role = jwtUtil.extractRole(token);
-
-            // Kiểm tra quyền truy cập:
-            // - Chỉ admin hoặc chính người dùng đó mới được xóa
-            if (role.equals("ROLE_ADMIN") || currentUserId.equals(userId)) {
-                authenticationService.deleteUser(userId);
-                return ResponseEntity.ok().body("User deleted successfully");
-            } else {
-                return ResponseEntity.status(403).body("Forbidden: You do not have permission to delete this user");
+            if (!authUtils.isAdminOrSameUser(token, userId)) {
+                return authUtils.createForbiddenStringResponse();
             }
+
+            authenticationService.deleteUser(userId);
+            return ResponseEntity.ok().body("User deleted successfully");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
-
 }
