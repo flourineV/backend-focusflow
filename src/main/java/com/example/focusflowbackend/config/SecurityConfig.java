@@ -14,15 +14,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Configuration
 public class SecurityConfig {
 
-    private final JwtFilter jwtFilter;
-
-    public SecurityConfig(JwtFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
-    }
+    @Autowired
+    private JwtFilter jwtFilter;
 
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
@@ -48,6 +46,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/api/register", "/api/login", "/api/refreshtoken").permitAll() // No need JWT for login and refresh token
+                .requestMatchers("/actuator/**").permitAll() // Cho phép truy cập actuator mà không cần xác thực
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // Only Admin
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN") //Both Admin & User
                 .requestMatchers("/api/user-profile/**").authenticated()

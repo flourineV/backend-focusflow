@@ -10,11 +10,9 @@ import org.springframework.http.HttpStatus;
 public class UserProfileService {
 
     private final UserProfileRepo userProfileRepository;
-    private final FCMService fcmService;
 
-    public UserProfileService(UserProfileRepo userProfileRepository, FCMService fcmService) {
+    public UserProfileService(UserProfileRepo userProfileRepository) {
         this.userProfileRepository = userProfileRepository;
-        this.fcmService = fcmService;
     }
 
     //Get by user_id
@@ -45,9 +43,6 @@ public class UserProfileService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found"));
 
         userProfileRepository.save(profile);
-
-        // Gửi thông báo trạng thái online
-        fcmService.sendAppStatusNotification(fcmToken, userId.toString(), true);
     }
 
     // Xử lý khi app tắt
@@ -56,8 +51,5 @@ public class UserProfileService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found"));
 
         userProfileRepository.save(profile);
-
-        // Gửi thông báo trạng thái offline
-        fcmService.sendAppStatusNotification(fcmToken, userId.toString(), false);
     }
 }
