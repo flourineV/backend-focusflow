@@ -30,7 +30,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of("*")); // Accept all domains
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -47,7 +47,7 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/register", "/api/login", "/api/refreshtoken").permitAll() // No need JWT for login and refresh token
+                .requestMatchers("/", "/api/register", "/api/login", "/api/refreshtoken").permitAll() // No need JWT for login and refresh token
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // Only Admin
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN") //Both Admin & User
                 .requestMatchers("/api/user-profile/**").authenticated()
