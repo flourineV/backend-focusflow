@@ -5,7 +5,6 @@ import com.example.focusflowbackend.repository.UserProfileRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
-import java.time.LocalDateTime;
 
 @Service
 public class UserProfileService {
@@ -44,8 +43,7 @@ public class UserProfileService {
     public void updateLastActiveTime(Long userId, String fcmToken) {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found"));
-        
-        profile.setLastActiveAt(LocalDateTime.now());
+
         userProfileRepository.save(profile);
 
         // Gửi thông báo trạng thái online
@@ -56,8 +54,7 @@ public class UserProfileService {
     public void handleAppShutdown(Long userId, String fcmToken) {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found"));
-        
-        profile.setLastActiveAt(LocalDateTime.now());
+
         userProfileRepository.save(profile);
 
         // Gửi thông báo trạng thái offline

@@ -47,9 +47,6 @@ public class UserProfile {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt; // Ngày cập nhật gần nhất
 
-    @Column(name = "last_active_at")
-    private LocalDateTime lastActiveAt;
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
