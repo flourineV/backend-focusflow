@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/api/register", "/api/login", "/api/refreshtoken").permitAll() // No need JWT for login and refresh token
                 .requestMatchers("/actuator/**").permitAll() // Cho phép truy cập actuator mà không cần xác thực
+                .requestMatchers("/api/payment/momo/notify", "/api/payment/momo/return", "/api/payment/vnpay/return").permitAll() // Cho phép truy cập các endpoint callback thanh toán
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // Only Admin
                 .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN") //Both Admin & User
                 .requestMatchers("/api/user-profile/**").authenticated()
