@@ -30,18 +30,18 @@ public class JwtFilter extends OncePerRequestFilter {
         String requestURI = request.getRequestURI();
 
         // Bỏ qua kiểm tra JWT cho đăng ký, đăng nhập và refresh token
-        if (requestURI.startsWith("/api/register") || requestURI.startsWith("/api/login") || requestURI.startsWith("/api/refreshtoken")) {
+        if (requestURI.startsWith("/api/register") || requestURI.startsWith("/api/login") || requestURI.startsWith("/api/refreshtoken") || requestURI.startsWith("/api/forgot-password") || requestURI.startsWith("/api/reset-password")) {
             chain.doFilter(request, response);
             return;
         }
 
-        if (requestURI.startsWith("/v3/api-docs") || 
-            requestURI.startsWith("/swagger-ui") || 
-            requestURI.equals("/swagger-ui.html") || 
-            requestURI.startsWith("/actuator") ||
-            requestURI.startsWith("/api/payment/momo/notify") ||
-            requestURI.startsWith("/api/payment/momo/return") ||
-            requestURI.startsWith("/api/payment/vnpay/return")) {
+        if (requestURI.startsWith("/v3/api-docs")
+                || requestURI.startsWith("/swagger-ui")
+                || requestURI.equals("/swagger-ui.html")
+                || requestURI.startsWith("/actuator")
+                || requestURI.startsWith("/api/payment/momo/notify")
+                || requestURI.startsWith("/api/payment/momo/return")
+                || requestURI.startsWith("/api/payment/vnpay/return")) {
             chain.doFilter(request, response); // Bỏ qua JWT cho Swagger, Actuator và các endpoint callback thanh toán
             return;
         }

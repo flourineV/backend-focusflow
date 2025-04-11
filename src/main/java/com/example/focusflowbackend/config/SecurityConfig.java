@@ -45,7 +45,8 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/api/register", "/api/login", "/api/refreshtoken").permitAll() // No need JWT for login and refresh token
+                .requestMatchers("/", "/api/register", "/api/login", "/api/refreshtoken", 
+                                 "/api/forgot-password", "/api/reset-password").permitAll() // No need JWT for login, reset password and refresh token
                 .requestMatchers("/actuator/**").permitAll() // Cho phép truy cập actuator mà không cần xác thực
                 .requestMatchers("/api/payment/momo/notify", "/api/payment/momo/return", "/api/payment/vnpay/return").permitAll() // Cho phép truy cập các endpoint callback thanh toán
                 .requestMatchers("/api/admin/**").hasRole("ADMIN") // Only Admin
