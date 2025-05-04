@@ -4,9 +4,12 @@ import com.example.focusflowbackend.dto.task.taskDTO;
 import com.example.focusflowbackend.security.utils.AuthorizationUtils;
 import com.example.focusflowbackend.services.TaskService;
 import com.example.focusflowbackend.services.ProjectService;
+import com.example.focusflowbackend.services.RedisCacheService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,13 +17,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/tasks")
+@RequestMapping("/api/user/tasks")
 @RequiredArgsConstructor
 public class TaskController {
 
     private final TaskService taskService;
     private final ProjectService projectService;
     private final AuthorizationUtils authUtils;
+
+    @Autowired
+    private RedisCacheService redisCacheService;
 
     // Create new task (not belong to Project)
     @PostMapping("/user/{userId}")
@@ -32,7 +38,12 @@ public class TaskController {
         if (!authUtils.isAdminOrSameUser(token, userId)) {
             return authUtils.createForbiddenStringResponse();
         }
-        return ResponseEntity.ok(taskService.createTask(userId, request, null));
+        taskDTO.Response createdTask = taskService.createTask(userId, request, null);
+
+        // Lưu task vào Redis cache
+        redisCacheService.cacheTask(createdTask.getId(), createdTask);
+
+        return ResponseEntity.ok(createdTask);
     }
 
     // Create new task (belong to Project)
@@ -49,10 +60,15 @@ public class TaskController {
         if (!isOwner) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: User is not the owner of the project");
         }
-        return ResponseEntity.ok(taskService.createTask(userId, request, projectId));
+        taskDTO.Response createdTask = taskService.createTask(userId, request, projectId);
+
+        // Lưu task vào Redis cache
+        redisCacheService.cacheTask(createdTask.getId(), createdTask);
+
+        return ResponseEntity.ok(createdTask);
     }
 
-    //Get all completed task today
+    // Get all completed task today
     @GetMapping("/user/{userId}/completed-today")
     public ResponseEntity<Long> getCompletedTaskCountToday(
             @RequestHeader("Authorization") String token,
@@ -67,12 +83,24 @@ public class TaskController {
     // Get all task from user
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<taskDTO.Response>> getTasksByUser(
-            @RequestHeader("Authorization") String token) {
-        Long userId = authUtils.getCurrentUserId(token);
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long userId) {
         if (!authUtils.isAdminOrSameUser(token, userId)) {
             return authUtils.createForbiddenResponse();
         }
+
+        // Kiểm tra cache trước
+        List<taskDTO.Response> cachedTasks = redisCacheService.getUserTasksFromCache(userId);
+        if (cachedTasks != null && !cachedTasks.isEmpty()) {
+            return ResponseEntity.ok(cachedTasks); // Trả về danh sách task từ cache nếu có
+        }
+
+        // Nếu không có trong cache, lấy từ database
         List<taskDTO.Response> tasks = taskService.getTasksByUser(userId);
+
+        // Lưu danh sách task vào cache
+        redisCacheService.cacheUserTasks(userId, tasks);
+
         return ResponseEntity.ok(tasks);
     }
 
@@ -84,7 +112,9 @@ public class TaskController {
         if (!authUtils.isAdminOrSameUser(token, userId)) {
             return authUtils.createForbiddenResponse();
         }
+
         List<taskDTO.Response> tasks = taskService.getTasksByUserSortedByPriority(userId);
+
         return ResponseEntity.ok(tasks);
     }
 
@@ -107,7 +137,7 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
-    // get 1 task
+    // Get 1 task
     @GetMapping("/{taskId}")
     public ResponseEntity<taskDTO.Response> getTask(
             @RequestHeader("Authorization") String token,
@@ -116,12 +146,19 @@ public class TaskController {
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        taskDTO.Response task = taskService.getTask(taskId);
-        boolean isOwner = taskService.isTaskOwnedByUser(taskId, userId);
-        boolean isAdmin = authUtils.isAdmin(token);
-        if (!isOwner && !isAdmin) {
-            return authUtils.createForbiddenResponse();
+
+        // Kiểm tra trong Redis Cache trước
+        taskDTO.Response cachedTask = (taskDTO.Response) redisCacheService.getTaskFromCache(taskId);
+        if (cachedTask != null) {
+            return ResponseEntity.ok(cachedTask); // Trả về task từ cache nếu có
         }
+
+        // Nếu không có trong cache, lấy từ database
+        taskDTO.Response task = taskService.getTask(taskId);
+
+        // Lưu task vào cache
+        redisCacheService.cacheTask(taskId, task);
+
         return ResponseEntity.ok(task);
     }
 
@@ -142,10 +179,14 @@ public class TaskController {
         }
 
         taskService.deleteTask(taskId);
+
+        // Xóa task khỏi cache
+        redisCacheService.removeTaskFromCache(taskId);
+
         return ResponseEntity.noContent().build();
     }
 
-    //Update priority
+    // Update priority
     @PatchMapping("/{taskId}/priority")
     public ResponseEntity<taskDTO.Response> updatePriority(
             @RequestHeader("Authorization") String token,
@@ -162,10 +203,15 @@ public class TaskController {
             return authUtils.createForbiddenResponse();
         }
 
-        return ResponseEntity.ok(taskService.updatePriority(taskId, dto));
+        taskDTO.Response updatedTask = taskService.updatePriority(taskId, dto);
+
+        // Cập nhật task vào Redis cache
+        redisCacheService.cacheTask(taskId, updatedTask);
+
+        return ResponseEntity.ok(updatedTask);
     }
 
-    //Update completion
+    // Update completion
     @PatchMapping("/{taskId}/completion")
     public ResponseEntity<taskDTO.Response> updateCompletion(
             @RequestHeader("Authorization") String token,
@@ -182,10 +228,15 @@ public class TaskController {
             return authUtils.createForbiddenResponse();
         }
 
-        return ResponseEntity.ok(taskService.updateCompletion(taskId, dto));
+        taskDTO.Response updatedTask = taskService.updateCompletion(taskId, dto);
+
+        // Cập nhật task vào Redis cache
+        redisCacheService.cacheTask(taskId, updatedTask);
+
+        return ResponseEntity.ok(updatedTask);
     }
 
-    //Update title
+    // Update title
     @PatchMapping("/{taskId}/title")
     public ResponseEntity<taskDTO.Response> updateTitle(
             @RequestHeader("Authorization") String token,
@@ -202,10 +253,15 @@ public class TaskController {
             return authUtils.createForbiddenResponse();
         }
 
-        return ResponseEntity.ok(taskService.updateTitle(taskId, dto));
+        taskDTO.Response updatedTask = taskService.updateTitle(taskId, dto);
+
+        // Cập nhật task vào Redis cache
+        redisCacheService.cacheTask(taskId, updatedTask);
+
+        return ResponseEntity.ok(updatedTask);
     }
 
-    //Update description
+    // Update description
     @PatchMapping("/{taskId}/description")
     public ResponseEntity<taskDTO.Response> updateDescription(
             @RequestHeader("Authorization") String token,
@@ -222,10 +278,15 @@ public class TaskController {
             return authUtils.createForbiddenResponse();
         }
 
-        return ResponseEntity.ok(taskService.updateDescription(taskId, dto));
+        taskDTO.Response updatedTask = taskService.updateDescription(taskId, dto);
+
+        // Cập nhật task vào Redis cache
+        redisCacheService.cacheTask(taskId, updatedTask);
+
+        return ResponseEntity.ok(updatedTask);
     }
 
-    //Update duedate
+    // Update duedate
     @PatchMapping("/{taskId}/duedate")
     public ResponseEntity<taskDTO.Response> updateDueDate(
             @RequestHeader("Authorization") String token,
@@ -242,10 +303,15 @@ public class TaskController {
             return authUtils.createForbiddenResponse();
         }
 
-        return ResponseEntity.ok(taskService.updateDueDate(taskId, dto));
+        taskDTO.Response updatedTask = taskService.updateDueDate(taskId, dto);
+
+        // Cập nhật task vào Redis cache
+        redisCacheService.cacheTask(taskId, updatedTask);
+
+        return ResponseEntity.ok(updatedTask);
     }
 
-    //Update repeat-style
+    // Update repeat-style
     @PatchMapping("/{taskId}/repeat-style")
     public ResponseEntity<taskDTO.Response> updateRepeatStyle(
             @RequestHeader("Authorization") String token,
@@ -262,10 +328,15 @@ public class TaskController {
             return authUtils.createForbiddenResponse();
         }
 
-        return ResponseEntity.ok(taskService.updateRepeatStyle(taskId, dto));
+        taskDTO.Response updatedTask = taskService.updateRepeatStyle(taskId, dto);
+
+        // Cập nhật task vào Redis cache
+        redisCacheService.cacheTask(taskId, updatedTask);
+
+        return ResponseEntity.ok(updatedTask);
     }
 
-    //Update reminder
+    // Update reminder
     @PatchMapping("/{taskId}/reminder")
     public ResponseEntity<taskDTO.Response> updateReminder(
             @RequestHeader("Authorization") String token,
@@ -282,7 +353,12 @@ public class TaskController {
             return authUtils.createForbiddenResponse();
         }
 
-        return ResponseEntity.ok(taskService.updateReminder(taskId, dto));
+        taskDTO.Response updatedTask = taskService.updateReminder(taskId, dto);
+
+        // Cập nhật task vào Redis cache
+        redisCacheService.cacheTask(taskId, updatedTask);
+
+        return ResponseEntity.ok(updatedTask);
     }
 
     // Move task to another project
@@ -305,6 +381,10 @@ public class TaskController {
         }
 
         taskService.moveTaskToProject(taskId, projectId);
+
+        // Cập nhật cache sau khi di chuyển task
+        redisCacheService.removeTaskFromCache(taskId);
+
         return ResponseEntity.noContent().build();
     }
 
@@ -326,6 +406,10 @@ public class TaskController {
         }
 
         taskService.moveTaskToProject(taskId, null);
+
+        // Cập nhật cache sau khi xóa task khỏi project
+        redisCacheService.removeTaskFromCache(taskId);
+
         return ResponseEntity.noContent().build();
     }
 
@@ -348,6 +432,10 @@ public class TaskController {
         }
 
         taskService.addTagsToTask(taskId, tagIds);
+
+        // Cập nhật cache sau khi thêm tag
+        redisCacheService.removeTaskFromCache(taskId);
+
         return ResponseEntity.ok().build();
     }
 

@@ -34,29 +34,33 @@ public class AuthenticationController {
         this.passwordResetService = passwordResetService;
     }
 
-    //Register
+    //Đăng ký tài khoản
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
         try {
             AuthenticationResponse response = authenticationService.register(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(new AuthenticationResponse("Error: " + e.getMessage()));  // Trả về lỗi nếu có
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
-    //Login
+    //Đăng nhập tài khoản
     @PostMapping("/login")
-    public ResponseEntity<AuthenticationResponse> loginUser(@RequestBody AuthenticationRequest request) {
+    public ResponseEntity<?> loginUser(@RequestBody AuthenticationRequest request) {
         try {
             AuthenticationResponse response = authenticationService.authenticate(request);
-            return ResponseEntity.ok(response); // return AuthenticationResponse
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(new AuthenticationResponse("Error: " + e.getMessage())); // Trả về lỗi nếu có
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
-    //Refreshtoken to get Access Token after being expired
+    //Lấy RefreshToken để khôi phục AccessToken
     @PostMapping("/refreshtoken")
     public ResponseEntity<?> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
         try {
@@ -74,7 +78,7 @@ public class AuthenticationController {
         }
     }
 
-    //Logout
+    //Đăng xuất
     @PostMapping("/logout")
     public ResponseEntity<?> logoutUser(@RequestParam Long userId) {
         try {
@@ -104,12 +108,12 @@ public class AuthenticationController {
     }
 
     // Forgot Password
-    @PostMapping("/forgot-password")
+    @PostMapping("/forgotpassword")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
-            PasswordResetService.PasswordResetTokenResult result = 
-                passwordResetService.createPasswordResetTokenForUser(request.getEmail());
-            
+            PasswordResetService.PasswordResetTokenResult result
+                    = passwordResetService.createPasswordResetTokenForUser(request.getEmail());
+
             if (result.isEmailSent()) {
                 return ResponseEntity.ok(new MessageResponse("Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn."));
             } else {
@@ -128,7 +132,7 @@ public class AuthenticationController {
     }
 
     // Reset Password
-    @PostMapping("/reset-password")
+    @PostMapping("/resetpassword")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         try {
             passwordResetService.resetPassword(request.getToken(), request.getNewPassword());

@@ -1,16 +1,21 @@
 package com.example.focusflowbackend.controllers;
 
+import com.example.focusflowbackend.exception.ForbiddenException;
+import com.example.focusflowbackend.exception.ResourceNotFoundException;
 import com.example.focusflowbackend.models.UserProfile;
 import com.example.focusflowbackend.services.UserProfileService;
 import com.example.focusflowbackend.security.utils.AuthorizationUtils;
 import jakarta.annotation.PostConstruct;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
-@RequestMapping("/api/user-profile")
+@RequestMapping("/api/user/profile")
 public class UserProfileController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserProfileController.class);
 
     private final UserProfileService userProfileService;
     private final AuthorizationUtils authUtils;
@@ -22,42 +27,40 @@ public class UserProfileController {
 
     @PostConstruct
     public void init() {
-        System.out.println("✅ UserProfileController đã được Spring Boot load thành công!");
+        logger.info("✅ UserProfileController đã được Spring Boot load thành công!");
     }
 
     // GET user by user_id
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfile> getUserProfile(@PathVariable Long userId, @RequestHeader("Authorization") String token) {
-        try {
-            if (!authUtils.isAdminOrSameUser(token, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-
-            System.out.println("Called userProfileService.getProfileByUserId...");
-            UserProfile userProfile = userProfileService.getProfileByUserId(userId);
-
-            System.out.println("Successful query: " + userProfile);
-            return new ResponseEntity<>(userProfile, HttpStatus.OK);
-
-        } catch (Exception e) {
-            System.out.println("Error while query user profile: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        if (!authUtils.isAdminOrSameUser(token, userId)) {
+            throw new ForbiddenException("Access denied: You do not have permission to access this resource");
         }
+
+        logger.debug("Called userProfileService.getProfileByUserId...");
+        UserProfile userProfile = userProfileService.getProfileByUserId(userId);
+
+        if (userProfile == null) {
+            throw new ResourceNotFoundException("User profile not found with id: " + userId);
+        }
+
+        logger.debug("Successful query: {}", userProfile);
+        return ResponseEntity.ok(userProfile);
     }
 
     // Update userProfile
     @PutMapping("/{userId}")
     public ResponseEntity<UserProfile> updateUserProfile(@PathVariable Long userId, @RequestBody UserProfile updatedProfile, @RequestHeader("Authorization") String token) {
-        try {
-            if (!authUtils.isAdminOrSameUser(token, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-            UserProfile updatedUserProfile = userProfileService.updateProfile(userId, updatedProfile);
-            return new ResponseEntity<>(updatedUserProfile, HttpStatus.OK);
+        if (!authUtils.isAdminOrSameUser(token, userId)) {
+            throw new ForbiddenException("Access denied: You do not have permission to access this resource");
+        }
 
+        try {
+            UserProfile updatedUserProfile = userProfileService.updateProfile(userId, updatedProfile);
+            return ResponseEntity.ok(updatedUserProfile);
         } catch (Exception e) {
-            System.out.println("Error in updateUserProfile: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            logger.error("Error in updateUserProfile: {}", e.getMessage());
+            throw new ResourceNotFoundException("User profile not found with id: " + userId);
         }
     }
 
@@ -67,17 +70,16 @@ public class UserProfileController {
             @PathVariable Long userId,
             @RequestParam String fcmToken,
             @RequestHeader("Authorization") String token) {
-        try {
-            if (!authUtils.isAdminOrSameUser(token, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
+        if (!authUtils.isAdminOrSameUser(token, userId)) {
+            throw new ForbiddenException("Access denied: You do not have permission to access this resource");
+        }
 
+        try {
             userProfileService.updateLastActiveTime(userId, fcmToken);
             return ResponseEntity.ok().build();
-
         } catch (Exception e) {
-            System.out.println("Error in updateLastActiveTime: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            logger.error("Error in updateLastActiveTime: {}", e.getMessage());
+            throw new ResourceNotFoundException("User profile not found with id: " + userId);
         }
     }
 
@@ -87,17 +89,16 @@ public class UserProfileController {
             @PathVariable Long userId,
             @RequestParam String fcmToken,
             @RequestHeader("Authorization") String token) {
-        try {
-            if (!authUtils.isAdminOrSameUser(token, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
+        if (!authUtils.isAdminOrSameUser(token, userId)) {
+            throw new ForbiddenException("Access denied: You do not have permission to access this resource");
+        }
 
+        try {
             userProfileService.handleAppShutdown(userId, fcmToken);
             return ResponseEntity.ok().build();
-
         } catch (Exception e) {
-            System.out.println("Error in handleAppShutdown: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            logger.error("Error in handleAppShutdown: {}", e.getMessage());
+            throw new ResourceNotFoundException("User profile not found with id: " + userId);
         }
     }
 }

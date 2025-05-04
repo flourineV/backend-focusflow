@@ -26,7 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/api/payment")
+@RequestMapping("/api/user/payment")
 public class PaymentController {
 
     @Autowired
@@ -40,25 +40,25 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> createMomoPayment(@RequestBody PaymentRequest request) {
         try {
             String orderId = "ORDER-" + UUID.randomUUID().toString();
-            
+
             Map<String, String> momoResponse = momoPaymentService.createPaymentRequest(
-                orderId, 
-                request.getAmount(), 
-                request.getOrderInfo()
+                    orderId,
+                    request.getAmount(),
+                    request.getOrderInfo()
             );
-            
+
             PaymentResponse response = new PaymentResponse();
             response.setSuccess(true);
             response.setPaymentUrl(momoResponse.get("payUrl"));
             response.setOrderId(orderId);
             response.setMessage("Success");
-            
+
             return ResponseEntity.ok(response);
         } catch (UnsupportedEncodingException | NoSuchAlgorithmException | InvalidKeyException | JsonProcessingException e) {
             PaymentResponse response = new PaymentResponse();
             response.setSuccess(false);
             response.setMessage("Failed to create MoMo payment: " + e.getMessage());
-            
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
@@ -78,7 +78,7 @@ public class PaymentController {
                 String orderId = requestBody.get("orderId");
                 String transId = requestBody.get("transId");
                 String resultCode = requestBody.get("resultCode");
-                
+
                 // Kiểm tra kết quả thanh toán
                 if ("0".equals(resultCode)) {
                     // Thanh toán thành công, cập nhật trạng thái đơn hàng
@@ -89,7 +89,7 @@ public class PaymentController {
                     // orderService.updatePaymentStatus(orderId, "FAILED", transId);
                     System.out.println("Payment failed for order: " + orderId + ", result code: " + resultCode);
                 }
-                
+
                 // Trả về response cho MoMo theo định dạng yêu cầu
                 Map<String, String> response = new HashMap<>();
                 response.put("partnerCode", requestBody.get("partnerCode"));
@@ -100,7 +100,7 @@ public class PaymentController {
                 response.put("message", "success");
                 response.put("responseTime", String.valueOf(System.currentTimeMillis()));
                 response.put("extraData", requestBody.get("extraData"));
-                
+
                 return ResponseEntity.ok("OK");
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
@@ -113,31 +113,31 @@ public class PaymentController {
     // Tạo thanh toán VNPay
     @PostMapping("/vnpay/create")
     public ResponseEntity<PaymentResponse> createVnPayPayment(
-            @RequestBody PaymentRequest request, 
+            @RequestBody PaymentRequest request,
             HttpServletRequest servletRequest) {
         try {
             String orderId = "ORDER-" + UUID.randomUUID().toString();
             String ipAddress = servletRequest.getRemoteAddr();
-            
+
             String paymentUrl = vnpayService.createPaymentUrl(
-                orderId, 
-                request.getOrderInfo(), 
-                request.getAmount(),
-                ipAddress
+                    orderId,
+                    request.getOrderInfo(),
+                    request.getAmount(),
+                    ipAddress
             );
-            
+
             PaymentResponse response = new PaymentResponse();
             response.setSuccess(true);
             response.setPaymentUrl(paymentUrl);
             response.setOrderId(orderId);
             response.setMessage("Success");
-            
+
             return ResponseEntity.ok(response);
         } catch (UnsupportedEncodingException e) {
             PaymentResponse response = new PaymentResponse();
             response.setSuccess(false);
             response.setMessage("Failed to create VNPay payment: " + e.getMessage());
-            
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
@@ -151,7 +151,7 @@ public class PaymentController {
                 String vnpTransactionStatus = params.get("vnp_TransactionStatus");
                 String vnpTxnRef = params.get("vnp_TxnRef"); // Order ID
                 String vnpTransactionNo = params.get("vnp_TransactionNo");
-                
+
                 if ("00".equals(vnpResponseCode) && "00".equals(vnpTransactionStatus)) {
                     // Thanh toán thành công
                     // orderService.updatePaymentStatus(vnpTxnRef, "PAID", vnpTransactionNo);
@@ -160,9 +160,9 @@ public class PaymentController {
                 } else {
                     // Thanh toán thất bại
                     // orderService.updatePaymentStatus(vnpTxnRef, "FAILED", vnpTransactionNo);
-                    System.out.println("VNPay payment failed for order: " + vnpTxnRef + 
-                            ", response code: " + vnpResponseCode + 
-                            ", transaction status: " + vnpTransactionStatus);
+                    System.out.println("VNPay payment failed for order: " + vnpTxnRef
+                            + ", response code: " + vnpResponseCode
+                            + ", transaction status: " + vnpTransactionStatus);
                     return ResponseEntity.ok("Payment failed. Please try again.");
                 }
             } else {
@@ -172,4 +172,4 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
         }
     }
-} 
+}

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/pomodoro-sessions")
+@RequestMapping("/api/user/pomodoro-sessions")
 @RequiredArgsConstructor
 public class PomodoroSessionController {
 

@@ -48,9 +48,6 @@ public class Task {
 
     private boolean isDeleted;
 
-    @Column(columnDefinition = "TEXT")
-    private String note;
-
     private Integer reminderDaysBefore;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)

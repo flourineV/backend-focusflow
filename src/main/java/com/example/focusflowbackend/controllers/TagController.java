@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/tags")
+@RequestMapping("/api/user/tags")
 @RequiredArgsConstructor
 public class TagController {
 

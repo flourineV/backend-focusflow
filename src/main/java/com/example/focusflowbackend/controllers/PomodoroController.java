@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/pomodoro")
+@RequestMapping("/api/user/pomodoro")
 @RequiredArgsConstructor
 public class PomodoroController {
 

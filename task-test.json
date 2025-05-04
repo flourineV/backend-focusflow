@@ -1,0 +1,8 @@
+{
+  "title": "Hoàn thành bài tập Java",
+  "description": "Triển khai các tính năng CRUD cho phần Task Management",
+  "dueDate": "2025-05-10T18:00:00",
+  "priority": 3,
+  "repeatStyle": "WEEKLY",
+  "reminderDaysBefore": 1
+} 
