@@ -4,6 +4,7 @@ import com.example.focusflowbackend.dto.project.projectDTO;
 import com.example.focusflowbackend.models.Project;
 import com.example.focusflowbackend.models.User;
 import com.example.focusflowbackend.repository.ProjectRepo;
+import com.example.focusflowbackend.repository.ProjectTaskRepo;
 import com.example.focusflowbackend.repository.UserAccountRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,9 @@ public class ProjectService {
 
     @Autowired
     private UserAccountRepo userRepo;
+    
+    @Autowired
+    private ProjectTaskRepo projectTaskRepo;
 
     // Tạo project mới cho user
     public Project createProject(Long userId, projectDTO.CreateRequest dto) {
@@ -76,12 +80,16 @@ public class ProjectService {
 
     // Mapping Project -> projectDTO.Response
     private projectDTO.Response mapToDTO(Project project) {
+        // Đếm số lượng task trong project
+        int taskCount = projectTaskRepo.findByProjectId(project.getId()).size();
+        
         return projectDTO.Response.builder()
                 .id(project.getId())
                 .name(project.getName())
                 .description(project.getDescription())
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
+                .taskCount(taskCount)
                 .build();
     }
 

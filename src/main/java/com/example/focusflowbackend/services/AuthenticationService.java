@@ -113,6 +113,7 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .token(token)
                 .refreshToken(refreshToken.getToken())
+                .username(userProfile.getUsername())
                 .build();
     }
 
@@ -125,6 +126,10 @@ public class AuthenticationService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
+        // Get user profile to access username
+        UserProfile userProfile = userProfileRepo.findByUserId(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User profile not found"));
+
         // Tạo token với role dưới dạng String
         String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name());
 
@@ -134,6 +139,7 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .token(token)
                 .refreshToken(refreshToken.getToken())
+                .username(userProfile.getUsername())
                 .build();
     }
 
@@ -144,7 +150,13 @@ public class AuthenticationService {
                 .map(RefreshToken::getUser)
                 .map(user -> {
                     String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name());
-                    return new TokenRefreshResponse(token, refreshToken);
+                    
+                    // Get username from user profile
+                    String username = userProfileRepo.findByUserId(user.getId())
+                            .map(UserProfile::getUsername)
+                            .orElse("");
+                            
+                    return new TokenRefreshResponse(token, refreshToken, username);
                 })
                 .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.FORBIDDEN, "Refresh token not found in database!"));

@@ -46,5 +46,6 @@ public class projectDTO {
         private String description;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        private Integer taskCount;
     }
 }
